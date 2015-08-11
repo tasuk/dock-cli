@@ -6,7 +6,7 @@ use Dock\Installer\Installable;
 use Dock\IO\ProcessRunner;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
-abstract class Task
+class Task
 {
     /**
      * @var ProcessRunner
@@ -14,37 +14,52 @@ abstract class Task
     protected $processRunner;
 
     /**
-     * @param bool $dryRun
-     */
-    abstract public function run($dryRun);
-
-    /**
+     * @param ProcessRunner $processRunner
+     * @param string $taskName Name of the doctor task
      * @param string $command Command to check whether a problem exists
      * @param string $problem Problem description
      * @param string $suggestedSolution Suggested solution
      * @param Installable $installable Task to fix the problem
+     */
+    public function __construct(
+        $processRunner,
+        $taskName,
+        $command,
+        $problem,
+        $suggestedSolution,
+        Installable $fixer)
+    {
+        $this->processRunner = $processRunner;
+        $this->taskName = $taskName;
+        $this->command = $command;
+        $this->problem = $problem;
+        $this->suggestedSolution = $suggestedSolution;
+        $this->fixer = $fixer;
+    }
+
+    /**
      * @param bool $dryRun Try to fix the problem?
      */
-    protected function handle($command, $problem, $suggestedSolution, Installable $installable, $dryRun)
+    public function run($dryRun)
     {
-        if (! $this->testCommand($command)) {
+        if (! $this->testCommand()) {
             if ($dryRun) {
-                throw new CommandFailedException("Command $command failed. $problem\n$suggestedSolution");
+                throw new CommandFailedException("Command {$this->command} failed."
+                    . " {$this->problem}\n{$this->suggestedSolution}");
             } else {
-                $installable->run();
-                $this->handle($command, $problem, $suggestedSolution, $installable, true);
+                $this->fixer->run();
+                $this->run(true);
             }
         }
     }
 
     /**
-     * @param string $command
      * @return bool Did the command succeed?
      */
-    protected function testCommand($command)
+    protected function testCommand()
     {
         try {
-            $this->processRunner->run($command);
+            $this->processRunner->run($this->command);
         } catch (ProcessFailedException $e) {
             return false;
         }

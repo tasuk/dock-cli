@@ -30,7 +30,29 @@ $container['installer.task_provider'] = function ($c) {
 
 $container['doctor.tasks'] = function($c) {
     return [
-        new Doctor\Docker($c['process.interactive_runner'], $c['installer.docker']),
-        new Doctor\DnsDock($c['process.interactive_runner'], $c['installer.dns.dnsdock'], $c['installer.dns.docker_routing']),
+        new Doctor\Task(
+            $c['process.interactive_runner'],
+            "Check docker version",
+            "docker -v",
+            "It seems docker is not installed.",
+            "Install docker with `dock-cli docker:install`",
+            $c['installer.docker']
+        ),
+        new Doctor\Task(
+            $c['process.interactive_runner'],
+            "Check docker info",
+            "docker info",
+            "It seems docker daemon is not running.",
+            "Start it with `sudo service docker start`",
+            $c['installer.docker']
+        ),
+        new Doctor\Task(
+            $c['process.interactive_runner'],
+            "Ping docker network interface",
+            "ping -c1 172.17.42.1",
+            "We can't reach docker.",
+            "Install and start docker by running: `dock-cli docker:install`",
+            $c['installer.docker']
+        ),
     ];
 };
